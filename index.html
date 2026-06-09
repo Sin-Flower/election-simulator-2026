@@ -36,7 +36,7 @@ td.l{text-align:left}.win{font-weight:800}
 </style></head>
 <body><div class="wrap">
 <h1>제9회 전국동시지방선거 · 시·도지사 선거 시뮬레이터</h1>
-<div class="note" style="margin:0 0 16px;font-size:13px;line-height:1.65"><b>시뮬레이션 계산법</b><br>① <b>기준 확률</b> — 각 개표단위(읍·면·동)에서 후보별 확률 = 그 후보 득표 ÷ 선거인수. 무효·기권도 같은 방식으로 확률을 만듭니다.<br>② <b>오차(스윙)</b> — 후보마다 ±오차범위(%p)를 정규분포 난수로 뽑아 그 확률에 더합니다(시·도당 1회). 오차범위를 키울수록 '진짜 득표율'의 불확실성이 커집니다.<br>③ <b>추첨</b> — 각 개표단위에서 선거인을 한 명씩 위 확률대로 후보/무효/기권에 무작위 배정합니다(다항분포 추출). 오차 0이면 표본오차만 있어 거의 같고, 오차를 키우면 회차마다 달라집니다.<br>④ <b>합산</b> — 모든 개표단위 + 관외·거소·국외 표를 더해 시·도 득표와 당선자를 냅니다.<br>⑤ <b>투표 유형</b> — '관내사전만' 또는 '당일만'을 고르면 그 유형의 표만으로 같은 추첨을 합니다.</div>
+<details class="note" style="margin:0 0 16px;font-size:13px;line-height:1.65"><summary style="cursor:pointer;font-weight:700;color:#1e50a2">시뮬레이션 계산법 (펼치기)</summary><div style="margin-top:8px">① <b>기준 확률</b> — 각 개표단위(읍·면·동)에서 후보별 확률 = 그 후보 득표 ÷ 선거인수. 무효·기권도 같은 방식으로 확률을 만듭니다.<br>② <b>오차(스윙)</b> — 후보마다 ±오차범위(%p)를 정규분포 난수로 뽑아 그 확률에 더합니다(시·도당 1회). 오차범위를 키울수록 '진짜 득표율'의 불확실성이 커집니다.<br>③ <b>추첨</b> — 각 개표단위에서 선거인을 한 명씩 위 확률대로 후보/무효/기권에 무작위 배정합니다(다항분포 추출). 오차 0이면 표본오차만 있어 거의 같고, 오차를 키우면 회차마다 달라집니다.<br>④ <b>합산</b> — 모든 개표단위 + 관외·거소·국외 표를 더해 시·도 득표와 당선자를 냅니다.<br>⑤ <b>투표 유형</b> — '관내사전만' 또는 '당일만'을 고르면 그 유형의 표만으로 같은 추첨을 합니다.</div></details>
 
 <div class="card"><div class="ctrls">
   <div class="fld"><label>시·도</label><select id="sido"></select></div>
@@ -50,14 +50,10 @@ td.l{text-align:left}.win{font-weight:800}
 <div class="note">팁: '시뮬레이션'을 여러 번 눌러 보세요. 오차범위 0이면 거의 안 변하고(표본오차만), 키울수록 출렁입니다. 투표 유형을 바꾸면 관내사전표만/당일표만으로도 돌려볼 수 있습니다.</div>
 </div>
 
-<div class="card" id="single">
-  <h3>결과 <span class="muted" id="s_meta"></span><span id="s_badge"></span></h3>
-  <div class="kpi" id="s_kpi"></div><div id="s_bars"></div>
-  <div class="muted" style="font-size:12px;margin-top:8px">검은 세로선 = 실제 득표율 · 막대 = 현재 표시 중인 득표율(유효표 기준)</div>
-</div>
+
 
 <div class="card" id="coin">
-  <h3>개표단위별 득표<b>수</b> 겹침 분석</h3>
+  <h3>개표단위별 득표<b>수</b> 겹침 분석 <span class="muted" id="c_meta"></span><span id="c_badge"></span></h3>
   
   <div class="ctrls" style="margin-bottom:10px">
     <div class="fld"><label>집계 단위</label><select id="gran"><option value="gu">구·시·군(개표구)</option><option value="dong" selected>읍·면·동</option></select></div>
@@ -112,23 +108,12 @@ function sigma(){return (+document.getElementById('moe').value)/100;}
 
 let LAST=null;
 function render(sample){
-  const s=getSido(),N=s.cands.length,md=mode();
+  const s=getSido(),md=mode();
   const R=run(s,md,sigma(),sample);
   LAST={s,R,md};
-  const sh=shares(R.tot);
-  const aAll=actualAll(s),ash=shares(aAll.tot);  // 실제 전체 기준 비교선
-  document.getElementById('s_badge').innerHTML=sample?'<span class="badge sim">시뮬레이션</span>':'<span class="badge act">실제 결과</span>';
   const mlabel={all:'전체',nae:'관내사전투표만',il:'당일투표만'}[md];
-  document.getElementById('s_meta').textContent=`· ${s.name} · ${mlabel}`+(sample?` · 오차 ±${(sigma()*100).toFixed(1)}%p`:'');
-  const voted=R.tot.reduce((a,b)=>a+b,0)+R.inv;
-  let kpi='';
-  if(md==='all'){kpi=`<div>선거인수<b>${R.elec.toLocaleString()}</b></div><div>투표수<b>${voted.toLocaleString()}</b></div><div>투표율<b>${(voted/R.elec*100).toFixed(1)}%</b></div><div>기권<b>${R.abst.toLocaleString()}</b></div><div>무효<b>${R.inv.toLocaleString()}</b></div>`;}
-  else{kpi=`<div>${mlabel} 투표수<b>${voted.toLocaleString()}</b></div><div>무효<b>${R.inv.toLocaleString()}</b></div>`;}
-  document.getElementById('s_kpi').innerHTML=kpi;
-  let mx=Math.max(...sh,...ash),lead=sh.indexOf(Math.max(...sh)),html='';
-  for(let k=0;k<N;k++){const c=s.cands[k],col=pcol(c.party);const w=mx>0?sh[k]/mx*100:0,aw=mx>0?ash[k]/mx*100:0;
-    html+=`<div class="bar-row"><div class="bar-name">${c.name} <small>${c.party}</small></div><div class="bar-track"><div class="bar-fill" style="width:${w}%;background:${col}"></div><div class="bar-actual" style="left:${aw}%"></div></div><div class="bar-val">${(sh[k]*100).toFixed(1)}% ${k===lead?'<b>★</b>':''}<br><span class="muted" style="font-size:11px">${R.tot[k].toLocaleString()}표</span></div></div>`;}
-  document.getElementById('s_bars').innerHTML=html;
+  document.getElementById('c_meta').textContent=`· ${s.name} · ${mlabel}`+(sample?` · 오차 ±${(sigma()*100).toFixed(1)}%p`:'');
+  document.getElementById('c_badge').innerHTML=sample?'<span class="badge sim">시뮬레이션</span>':'<span class="badge act">실제 결과</span>';
   renderCoin();
 }
 function aggUnits(pu,gran){
